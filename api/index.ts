@@ -2,14 +2,22 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { parseRequest } from './_lib/parser';
 import { getScreenshot } from './_lib/chromium';
 import { getHtml } from './_lib/template';
+import fetch from "node-fetch";
 
 const isDev = !process.env.AWS_REGION;
 const isHtmlDebug = process.env.OG_HTML_DEBUG === '1';
+const source = "https://umbrel-apps-api.deno.dev/";
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
     try {
         const parsedReq = parseRequest(req);
-        const html = getHtml(parsedReq);
+        const fetchRes = await fetch(source);
+        const data: any = await fetchRes.json();
+
+        const amountOfApps = data.availableUpdates.length + data.upToDate.length + data.failed.length;
+        const percentage = Math.round(data.availableUpdates.length / amountOfApps * 100);
+
+        const html = getHtml(percentage);
         if (isHtmlDebug) {
             res.setHeader('Content-Type', 'text/html');
             res.end(html);
